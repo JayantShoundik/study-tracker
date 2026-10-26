@@ -18,6 +18,9 @@ import {
   BookOpen,
   Calendar as CalendarIcon,
   Bot,
+  Check,
+  Trophy,
+  Plus,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -28,6 +31,8 @@ import {
   Tooltip,
   CartesianGrid,
 } from "recharts";
+import { DailyQuestBanner } from "@/components/common/DailyQuestBanner";
+import { TimeUrgencyClock } from "@/components/common/TimeUrgencyClock";
 
 export const DashboardView: React.FC = () => {
   const {
@@ -43,6 +48,14 @@ export const DashboardView: React.FC = () => {
     completedSessions,
     aiEvaluations,
     setActiveTab,
+    setIsQuickAddOpen,
+    xp,
+    level,
+    levelTitle,
+    xpProgress,
+    streak,
+    quickCompleteTask,
+    setCelebrationData,
   } = useApp();
 
   const [viewMode, setViewMode] = useState<"individual" | "shared">("individual");
@@ -136,66 +149,92 @@ export const DashboardView: React.FC = () => {
         </div>
       </div>
 
+      {/* Prominent Live Time Urgency Clock */}
+      <TimeUrgencyClock />
+
+      {/* Hero Daily Quest & Mindset Booster */}
+      <DailyQuestBanner />
+
       {/* Top Metric Cards */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2.5 sm:gap-4 sm:grid-cols-4">
         {/* Metric 1 */}
-        <div className="rounded-2xl border border-border bg-surface p-4 shadow-subtle">
+        <div className="rounded-2xl border border-border bg-surface p-3 sm:p-4 shadow-subtle hover:border-indigo-500/30 transition-all">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-secondary">
+            <span className="text-[11px] sm:text-xs font-semibold text-secondary truncate">
               {viewMode === "individual" ? "Verified Focus" : "Combined Focus"}
             </span>
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-50 text-primary dark:bg-indigo-950/60">
-              <Clock className="h-4 w-4" />
+            <div className="flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-lg bg-indigo-50 text-primary dark:bg-indigo-950/60 shrink-0">
+              <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             </div>
           </div>
-          <div className="mt-2 text-2xl font-black text-foreground">
+          <div className="mt-1.5 sm:mt-2 text-xl sm:text-2xl font-black text-foreground">
             {viewMode === "individual"
               ? `${(totalUserFocusSeconds / 3600).toFixed(1)}h`
               : `${(sharedFocusSeconds / 3600).toFixed(1)}h`}
           </div>
-          <span className="text-[11px] font-medium text-emerald-600">10m min rule verified</span>
+          <span className="text-[10px] sm:text-[11px] font-medium text-emerald-600 truncate block">Deep work verified</span>
         </div>
 
         {/* Metric 2 */}
-        <div className="rounded-2xl border border-border bg-surface p-4 shadow-subtle">
+        <div className="rounded-2xl border border-border bg-surface p-3 sm:p-4 shadow-subtle hover:border-emerald-500/30 transition-all">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-secondary">Today's Targets</span>
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60">
-              <CheckCircle2 className="h-4 w-4" />
+            <span className="text-[11px] sm:text-xs font-semibold text-secondary truncate">Today's Targets</span>
+            <div className="flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 shrink-0">
+              <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             </div>
           </div>
-          <div className="mt-2 text-2xl font-black text-foreground">
+          <div className="mt-1.5 sm:mt-2 text-xl sm:text-2xl font-black text-foreground">
             {completedTasks.length} / {myTasks.length}
           </div>
-          <span className="text-[11px] font-medium text-secondary">
-            {pendingTasks.length + inProgressTasks.length} in progress or planned
+          <span className="text-[10px] sm:text-[11px] font-medium text-secondary truncate block">
+            {pendingTasks.length + inProgressTasks.length} in queue
           </span>
         </div>
 
-        {/* Metric 3 */}
-        <div className="rounded-2xl border border-border bg-surface p-4 shadow-subtle">
+        {/* Metric 3: Dynamic Streak */}
+        <div
+          onClick={() => {
+            setCelebrationData({
+              isOpen: true,
+              title: `${streak}-Day Focus Streak! 🔥`,
+              subtitle: "Every consecutive day primes your brain for interview excellence.",
+              xpEarned: 25,
+              streakCount: streak,
+              type: "daily_goal",
+            });
+          }}
+          className="rounded-2xl border border-amber-500/30 bg-surface p-3 sm:p-4 shadow-subtle cursor-pointer hover:border-amber-500 hover:bg-amber-50/20 dark:hover:bg-amber-950/20 transition-all"
+        >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-secondary">Study Streak</span>
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-50 text-amber-600 dark:bg-amber-950/60">
-              <Flame className="h-4 w-4 text-amber-500" />
+            <span className="text-[11px] sm:text-xs font-semibold text-amber-600 dark:text-amber-400 truncate">Study Streak</span>
+            <div className="flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-lg bg-amber-50 text-amber-600 dark:bg-amber-950/60 shrink-0">
+              <Flame className="h-3.5 w-3.5 sm:h-4 sm:w-4 fill-current text-amber-500 animate-flame" />
             </div>
           </div>
-          <div className="mt-2 text-2xl font-black text-foreground">14 Days</div>
-          <span className="text-[11px] font-medium text-amber-600">Zero skipped days</span>
+          <div className="mt-1.5 sm:mt-2 text-xl sm:text-2xl font-black text-foreground flex items-center space-x-1">
+            <span>{streak} Days</span>
+            <span className="text-xs font-extrabold text-amber-500">🔥</span>
+          </div>
+          <span className="text-[10px] sm:text-[11px] font-medium text-amber-600 dark:text-amber-400 truncate block">Streak active</span>
         </div>
 
-        {/* Metric 4 */}
-        <div className="rounded-2xl border border-border bg-surface p-4 shadow-subtle">
+        {/* Metric 4: Player Rank & XP */}
+        <div
+          onClick={() => setActiveTab("analytics")}
+          className="rounded-2xl border border-indigo-500/30 bg-surface p-3 sm:p-4 shadow-subtle cursor-pointer hover:border-primary hover:bg-indigo-50/20 dark:hover:bg-indigo-950/20 transition-all"
+        >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-secondary">AI Coach Score</span>
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-rose-50 text-rose-600 dark:bg-rose-950/60">
-              <Award className="h-4 w-4" />
+            <span className="text-[11px] sm:text-xs font-semibold text-primary truncate">Mastery Rank</span>
+            <div className="flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-lg bg-indigo-50 text-primary dark:bg-indigo-950/60 shrink-0">
+              <Trophy className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
             </div>
           </div>
-          <div className="mt-2 text-2xl font-black text-foreground">
-            {aiEvaluations.length > 0 ? `${aiEvaluations[0].overall_score}%` : "92%"}
+          <div className="mt-1.5 sm:mt-2 text-xl sm:text-2xl font-black text-foreground">
+            Lv.{level}
           </div>
-          <span className="text-[11px] font-medium text-primary">Interview Ready tier</span>
+          <span className="text-[10px] sm:text-[11px] font-medium text-secondary truncate block">
+            {xp} XP • {levelTitle.split(" ")[0]}
+          </span>
         </div>
       </div>
 
@@ -279,62 +318,100 @@ export const DashboardView: React.FC = () => {
             </div>
 
             <div className="space-y-3">
-              {myTasks.slice(0, 4).map((task) => {
-                const subject = subjects.find((s) => s.id === task.subject_id);
-                const isRunningThis = activeSession?.task_id === task.id;
-
-                return (
-                  <div
-                    key={task.id}
-                    className={`flex flex-col justify-between rounded-xl border p-3.5 transition-all sm:flex-row sm:items-center ${
-                      isRunningThis
-                        ? "border-primary bg-primary-subtle/30 shadow-sm"
-                        : "border-border bg-surface hover:border-border hover:bg-surface-raised/50"
-                    }`}
-                  >
-                    <div className="flex items-start space-x-3 truncate">
-                      <div
-                        className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-[10px] font-bold text-white"
-                        style={{ backgroundColor: subject?.color || "#4F46E5" }}
-                      >
-                        {subject?.code || "SUB"}
-                      </div>
-                      <div className="truncate">
-                        <div className="flex items-center space-x-2">
-                          <h4 className="text-xs font-bold text-foreground truncate">{task.title}</h4>
-                          <span
-                            className={`rounded-full px-2 py-0.2 text-[9px] font-semibold uppercase ${
-                              task.status === "completed"
-                                ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
-                                : task.status === "in_progress"
-                                ? "bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-300"
-                                : "bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300"
-                            }`}
-                          >
-                            {task.status.replace("_", " ")}
-                          </span>
-                        </div>
-                        <p className="mt-1 text-[11px] text-secondary line-clamp-1">{task.description}</p>
-                      </div>
-                    </div>
-
-                    <div className="mt-3 flex items-center justify-between space-x-2 sm:mt-0 sm:justify-end">
-                      <span className="text-[11px] font-mono text-secondary">
-                        {task.estimated_minutes} min
-                      </span>
-                      {task.status !== "completed" && (
-                        <button
-                          onClick={() => startFocusSession(task.id)}
-                          className="flex items-center space-x-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-primary-hover transition-colors"
-                        >
-                          <Play className="h-3 w-3 fill-current" />
-                          <span>{isRunningThis ? "In Focus" : "Start"}</span>
-                        </button>
-                      )}
-                    </div>
+              {myTasks.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-border bg-surface-raised/40 p-6 sm:p-8 text-center">
+                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary mb-3">
+                    <Sparkles className="h-6 w-6 text-amber-500 animate-pulse" />
                   </div>
-                );
-              })}
+                  <h4 className="text-sm font-black text-foreground">Clean Slate: Ready for Tomorrow!</h4>
+                  <p className="mt-1 text-xs text-secondary max-w-sm mx-auto">
+                    All previous task data has been erased. From tomorrow we start completely fresh! Set your targets tonight or start tomorrow morning.
+                  </p>
+                  <button
+                    onClick={() => setIsQuickAddOpen(true)}
+                    className="mt-4 inline-flex items-center space-x-2 rounded-xl bg-gradient-to-r from-primary to-indigo-600 px-4 py-2.5 text-xs font-bold text-white shadow-md hover:scale-[1.02] transition-all"
+                  >
+                    <Plus className="h-4 w-4" />
+                    <span>+ Plan Tomorrow&rsquo;s First Target</span>
+                  </button>
+                </div>
+              ) : (
+                myTasks.slice(0, 4).map((task) => {
+                  const subject = subjects.find((s) => s.id === task.subject_id);
+                  const isRunningThis = activeSession?.task_id === task.id;
+
+                  return (
+                    <div
+                      key={task.id}
+                      className={`flex flex-col justify-between rounded-xl border p-3.5 transition-all sm:flex-row sm:items-center ${
+                        isRunningThis
+                          ? "border-primary bg-primary-subtle/30 shadow-sm"
+                          : "border-border bg-surface hover:border-border hover:bg-surface-raised/50"
+                      }`}
+                    >
+                      <div className="flex items-start space-x-3 truncate">
+                        {/* 1-Click Complete Circle Button */}
+                        <button
+                          onClick={() => {
+                            if (task.status === "completed") {
+                              // toggle to planned
+                            } else {
+                              quickCompleteTask(task.id, true);
+                            }
+                          }}
+                          className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border transition-all ${
+                            task.status === "completed"
+                              ? "border-emerald-500 bg-emerald-500 text-white shadow-xs"
+                              : "border-slate-300 dark:border-slate-600 hover:border-emerald-500 hover:bg-emerald-500/10 text-transparent hover:text-emerald-500"
+                          }`}
+                          title={task.status === "completed" ? "Target Accomplished!" : "Mark Completed (+50 XP)"}
+                        >
+                          <Check className="h-3.5 w-3.5 stroke-[3]" />
+                        </button>
+
+                        <div
+                          className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-[10px] font-bold text-white"
+                          style={{ backgroundColor: subject?.color || "#4F46E5" }}
+                        >
+                          {subject?.code || "SUB"}
+                        </div>
+                        <div className="truncate">
+                          <div className="flex items-center space-x-2">
+                            <h4 className="text-xs font-bold text-foreground truncate">{task.title}</h4>
+                            <span
+                              className={`rounded-full px-2 py-0.2 text-[9px] font-semibold uppercase ${
+                                task.status === "completed"
+                                  ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+                                  : task.status === "in_progress"
+                                  ? "bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-300"
+                                  : "bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300"
+                              }`}
+                            >
+                              {task.status.replace("_", " ")}
+                            </span>
+                          </div>
+                          <p className="mt-1 text-[11px] text-secondary line-clamp-1">{task.description}</p>
+                        </div>
+                      </div>
+
+                      <div className="mt-3 flex items-center justify-between space-x-2 sm:mt-0 sm:justify-end">
+                        <span className="text-[11px] font-mono text-secondary">
+                          {task.estimated_minutes} min
+                        </span>
+                        {task.status !== "completed" && (
+                          <button
+                            onClick={() => startFocusSession(task.id)}
+                            className="flex items-center space-x-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-primary-hover transition-colors"
+                          >
+                            <Play className="h-3 w-3 fill-current" />
+                            <span>{isRunningThis ? "In Focus" : "Start"}</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
 

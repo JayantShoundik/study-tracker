@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { useApp } from "@/context/AppContext";
 import { Navbar } from "@/components/layout/Navbar";
 import { Sidebar } from "@/components/layout/Sidebar";
+import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
 import { FloatingTimer } from "@/components/timer/FloatingTimer";
 import { QuickAddModal } from "@/components/common/QuickAddModal";
 import { GlobalSearchModal } from "@/components/common/GlobalSearchModal";
@@ -64,14 +65,19 @@ export default function Home() {
 
       {/* Main Body Layout */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Left Sidebar */}
-        <Sidebar />
+        {/* Left Sidebar (Desktop only) */}
+        <div className="hidden md:flex">
+          <Sidebar />
+        </div>
 
-        {/* Dynamic Content Area */}
-        <main className="flex-1 overflow-y-auto px-4 py-6 md:px-8">
+        {/* Dynamic Content Area (Mobile-friendly padding & scroll) */}
+        <main className="flex-1 overflow-y-auto px-3 py-4 sm:px-6 sm:py-6 pb-28 md:pb-8">
           <div className="mx-auto max-w-7xl">{renderActiveView()}</div>
         </main>
       </div>
+
+      {/* Mobile Smartphone Bottom Navigation Bar */}
+      <MobileBottomNav />
 
       {/* Persistent Floating Focus Timer */}
       <FloatingTimer />

@@ -7,6 +7,7 @@ import {
   Subject,
   Topic,
   Task,
+  TaskSubtask,
   TaskStatus,
   SubmissionType,
   LibraryEntry,
@@ -31,6 +32,32 @@ import {
   INITIAL_FOCUS_SESSIONS,
   INITIAL_AI_EVALUATION,
 } from "@/lib/mockData";
+import {
+  playTaskCompleteSound,
+  playSubtaskSound,
+  playLevelUpSound,
+  playFocusStartSound,
+  triggerConfetti,
+  isSoundEnabled,
+  setSoundEnabled,
+} from "@/lib/soundFx";
+import { CelebrationData, CelebrationModal } from "@/components/common/CelebrationModal";
+
+export interface LevelInfo {
+  level: number;
+  title: string;
+  minXp: number;
+  maxXp: number;
+}
+
+export const LEVEL_TIERS: LevelInfo[] = [
+  { level: 1, minXp: 0, maxXp: 200, title: "Focus Novice 🥉" },
+  { level: 2, minXp: 200, maxXp: 500, title: "Target Hunter 🥈" },
+  { level: 3, minXp: 500, maxXp: 1000, title: "Deep Work Scholar 🥇" },
+  { level: 4, minXp: 1000, maxXp: 1800, title: "Placement Gladiator 💎" },
+  { level: 5, minXp: 1800, maxXp: 3000, title: "Algorithm Master ⚡" },
+  { level: 6, minXp: 3000, maxXp: 6000, title: "Elite Tech Titan 👑" },
+];
 
 interface AppContextType {
   currentUser: Profile;
@@ -44,6 +71,21 @@ interface AppContextType {
   deleteTask: (id: string) => void;
   carryForwardTask: (id: string) => void;
   toggleSubtask: (taskId: string, subtaskId: string) => void;
+  addSubtask: (taskId: string, title: string) => void;
+  quickCompleteTask: (taskId: string, force?: boolean) => { success: boolean; message: string };
+  
+  // Gamification & Motivation
+  xp: number;
+  level: number;
+  levelTitle: string;
+  xpProgress: { current: number; max: number; percentage: number };
+  streak: number;
+  isSoundActive: boolean;
+  toggleSound: () => void;
+  celebrationData: CelebrationData;
+  setCelebrationData: React.Dispatch<React.SetStateAction<CelebrationData>>;
+  addXp: (amount: number, reason?: string) => void;
+  triggerTaskCelebration: (taskTitle: string, xp?: number) => void;
   
   // Subjects & Topics
   subjects: Subject[];
@@ -108,7 +150,7 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-const LOCAL_STORAGE_KEY_PREFIX = "focusforge_v1_";
+const LOCAL_STORAGE_KEY_PREFIX = "focusforge_v2_clean_";
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // Current user state (Jayant by default, toggleable to Rekha)
@@ -169,9 +211,29 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isTimerRunning, setIsTimerRunning] = useState<boolean>(false);
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Gamification & Motivation State (Clean slate for tomorrow)
+  const [xp, setXp] = useState<number>(0);
+  const [streak, setStreak] = useState<number>(0);
+  const [isSoundActive, setIsSoundActive] = useState<boolean>(true);
+  const [celebrationData, setCelebrationData] = useState<CelebrationData>({
+    isOpen: false,
+    title: "",
+    subtitle: "",
+    xpEarned: 50,
+    streakCount: 1,
+    type: "target",
+  });
+
   // Load persisted state on mount
   useEffect(() => {
     try {
+      // Purge legacy v1 mock data to ensure complete fresh start
+      Object.keys(localStorage).forEach((key) => {
+        if (key.startsWith("focusforge_v1_")) {
+          localStorage.removeItem(key);
+        }
+      });
+
       const savedTasks = localStorage.getItem(`${LOCAL_STORAGE_KEY_PREFIX}tasks`);
       if (savedTasks) setTasks(JSON.parse(savedTasks));
 
@@ -207,6 +269,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setTheme(savedTheme);
         document.documentElement.classList.toggle("dark", savedTheme === "dark");
       }
+
+      const savedXp = localStorage.getItem(`${LOCAL_STORAGE_KEY_PREFIX}xp`);
+      if (savedXp) setXp(Number(savedXp));
+
+      const savedStreak = localStorage.getItem(`${LOCAL_STORAGE_KEY_PREFIX}streak`);
+      if (savedStreak) setStreak(Number(savedStreak));
+
+      setIsSoundActive(isSoundEnabled());
     } catch (e) {
       console.warn("Could not load initial localStorage state", e);
     }
@@ -398,13 +468,47 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const toggleSubtask = (taskId: string, subtaskId: string) => {
+    let completedNow = false;
     setTasks((prev) =>
       prev.map((t) => {
         if (t.id === taskId && t.subtasks) {
-          const updatedSubtasks = t.subtasks.map((st) =>
-            st.id === subtaskId ? { ...st, is_completed: !st.is_completed } : st
-          );
+          const updatedSubtasks = t.subtasks.map((st) => {
+            if (st.id === subtaskId) {
+              completedNow = !st.is_completed;
+              return { ...st, is_completed: completedNow };
+            }
+            return st;
+          });
           return { ...t, subtasks: updatedSubtasks, updated_at: new Date().toISOString() };
+        }
+        return t;
+      })
+    );
+
+    if (completedNow) {
+      playSubtaskSound();
+      addXp(15, "Subtask checked off");
+    }
+  };
+
+  const addSubtask = (taskId: string, title: string) => {
+    if (!title.trim()) return;
+    setTasks((prev) =>
+      prev.map((t) => {
+        if (t.id === taskId) {
+          const currentSubtasks = t.subtasks || [];
+          const newSubtask: TaskSubtask = {
+            id: `st-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+            task_id: taskId,
+            title: title.trim(),
+            is_completed: false,
+            position: currentSubtasks.length,
+          };
+          return {
+            ...t,
+            subtasks: [...currentSubtasks, newSubtask],
+            updated_at: new Date().toISOString(),
+          };
         }
         return t;
       })
@@ -450,6 +554,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const startFocusSession = (taskId: string) => {
     const task = tasks.find((t) => t.id === taskId);
     if (!task) return;
+
+    playFocusStartSound();
 
     // If an existing session was running on another task, save it first
     if (activeSession && activeSession.task_id !== taskId) {
@@ -508,6 +614,63 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     localStorage.removeItem(`${LOCAL_STORAGE_KEY_PREFIX}active_session`);
   };
 
+  // Gamification & XP engine
+  const addXp = (amount: number, reason?: string) => {
+    setXp((prev) => {
+      const newXp = prev + amount;
+      try {
+        localStorage.setItem(`${LOCAL_STORAGE_KEY_PREFIX}xp`, String(newXp));
+      } catch (e) {
+        console.error(e);
+      }
+
+      // Check level transition
+      const oldTier =
+        LEVEL_TIERS.find((t) => prev >= t.minXp && prev < t.maxXp) ||
+        LEVEL_TIERS[LEVEL_TIERS.length - 1];
+      const newTier =
+        LEVEL_TIERS.find((t) => newXp >= t.minXp && newXp < t.maxXp) ||
+        LEVEL_TIERS[LEVEL_TIERS.length - 1];
+
+      if (newTier.level > oldTier.level) {
+        // Leveled up!
+        playLevelUpSound();
+        triggerConfetti("fireworks");
+        setCelebrationData({
+          isOpen: true,
+          title: `Level Up: Level ${newTier.level}!`,
+          subtitle: `Incredible work! You unlocked the rank of "${newTier.title}"!`,
+          xpEarned: amount,
+          streakCount: streak,
+          type: "level_up",
+        });
+      }
+
+      return newXp;
+    });
+  };
+
+  const toggleSound = () => {
+    setIsSoundActive((prev) => {
+      const next = !prev;
+      setSoundEnabled(next);
+      return next;
+    });
+  };
+
+  const triggerTaskCelebration = (taskTitle: string, xpEarned = 50) => {
+    playTaskCompleteSound();
+    triggerConfetti("standard");
+    setCelebrationData({
+      isOpen: true,
+      title: "Target Completed! 🎯",
+      subtitle: `"${taskTitle}" has been conquered. Keep up the high energy!`,
+      xpEarned,
+      streakCount: streak,
+      type: "target",
+    });
+  };
+
   // 10-Minute Minimum Rule Verification
   const completeTaskWithVerification = (taskId: string): { success: boolean; message: string } => {
     const task = tasks.find((t) => t.id === taskId);
@@ -548,8 +711,54 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       stopFocusSession();
     }
 
+    addXp(50, `Crushed Target: ${task.title}`);
+    triggerTaskCelebration(task.title, 50);
+
     addNotification("Target Completed!", `"${task.title}" has been verified and marked completed.`, "reminder");
-    return { success: true, message: "Target marked completed!" };
+    return { success: true, message: "Target marked completed! (+50 XP)" };
+  };
+
+  // Effortless instant completion (Bypasses restriction for self-paced/offline work)
+  const quickCompleteTask = (taskId: string, force = true): { success: boolean; message: string } => {
+    const task = tasks.find((t) => t.id === taskId);
+    if (!task) return { success: false, message: "Target not found." };
+
+    if (!force) {
+      return completeTaskWithVerification(taskId);
+    }
+
+    updateTask(taskId, {
+      status: "completed",
+      completed_at: new Date().toISOString(),
+    });
+
+    if (activeSession && activeSession.task_id === taskId) {
+      stopFocusSession();
+    }
+
+    addXp(50, `Conquered Target: ${task.title}`);
+    triggerTaskCelebration(task.title, 50);
+
+    addNotification("Target Crushed!", `"${task.title}" completed (+50 XP).`, "reminder");
+    return { success: true, message: "Target marked completed! (+50 XP)" };
+  };
+
+  // Computed Gamification Levels
+  const currentTier =
+    LEVEL_TIERS.find((t) => xp >= t.minXp && xp < t.maxXp) ||
+    LEVEL_TIERS[LEVEL_TIERS.length - 1];
+  const level = currentTier.level;
+  const levelTitle = currentTier.title;
+  const xpCurrentInLevel = xp - currentTier.minXp;
+  const xpSpanInLevel = currentTier.maxXp - currentTier.minXp;
+  const xpPercentage = Math.min(
+    100,
+    Math.max(0, Math.round((xpCurrentInLevel / xpSpanInLevel) * 100))
+  );
+  const xpProgress = {
+    current: xpCurrentInLevel,
+    max: xpSpanInLevel,
+    percentage: xpPercentage,
   };
 
   // Library actions
@@ -703,6 +912,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         deleteTask,
         carryForwardTask,
         toggleSubtask,
+        addSubtask,
+        quickCompleteTask,
+        xp,
+        level,
+        levelTitle,
+        xpProgress,
+        streak,
+        isSoundActive,
+        toggleSound,
+        celebrationData,
+        setCelebrationData,
+        addXp,
+        triggerTaskCelebration,
         subjects,
         topics,
         addSubject,
@@ -748,6 +970,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }}
     >
       {children}
+      <CelebrationModal
+        data={celebrationData}
+        onClose={() => setCelebrationData((prev) => ({ ...prev, isOpen: false }))}
+      />
     </AppContext.Provider>
   );
 };

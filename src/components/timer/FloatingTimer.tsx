@@ -57,7 +57,7 @@ export const FloatingTimer: React.FC = () => {
 
   if (minimized) {
     return (
-      <div className="fixed bottom-5 right-5 z-40 flex items-center space-x-2 rounded-full border border-primary/40 bg-surface px-4 py-2 shadow-floating transition-all duration-200">
+      <div className="fixed bottom-20 right-4 sm:bottom-6 sm:right-6 z-40 flex items-center space-x-2 rounded-full border border-primary/40 bg-surface px-4 py-2 shadow-floating transition-all duration-200">
         <div className={`h-2.5 w-2.5 rounded-full ${isTimerRunning ? "animate-pulse bg-emerald-500" : "bg-warning"}`} />
         <span className="font-mono text-xs font-bold text-foreground">{formatDuration(activeSeconds)}</span>
         <button
@@ -72,7 +72,7 @@ export const FloatingTimer: React.FC = () => {
   }
 
   return (
-    <div className="fixed bottom-5 right-5 z-40 w-96 rounded-2xl border border-border bg-surface p-4 shadow-floating backdrop-blur transition-all duration-200 animate-scale-in">
+    <div className="fixed bottom-20 left-3 right-3 sm:left-auto sm:bottom-6 sm:right-6 z-40 sm:w-96 rounded-2xl border border-border bg-surface p-4 shadow-floating backdrop-blur transition-all duration-200 animate-scale-in">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-border pb-2.5">
         <div className="flex items-center space-x-2">

@@ -15,6 +15,10 @@ import {
   Sparkles,
   ChevronDown,
   ExternalLink,
+  Volume2,
+  VolumeX,
+  Trophy,
+  Star,
 } from "lucide-react";
 
 interface NavbarProps {
@@ -35,6 +39,14 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenSearch, onOpenQuickAdd }) 
     activeSeconds,
     isTimerRunning,
     setActiveTab,
+    xp,
+    level,
+    levelTitle,
+    xpProgress,
+    streak,
+    isSoundActive,
+    toggleSound,
+    setCelebrationData,
   } = useApp();
 
   const [showNotifications, setShowNotifications] = useState(false);
@@ -80,8 +92,8 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenSearch, onOpenQuickAdd }) 
         )}
       </div>
 
-      {/* Center: Global Search Trigger */}
-      <div className="flex flex-1 max-w-md mx-4">
+      {/* Center: Global Search Trigger (Desktop full input) */}
+      <div className="hidden md:flex flex-1 max-w-md mx-4">
         <button
           onClick={onOpenSearch}
           className="flex h-9 w-full items-center justify-between rounded-lg border border-border bg-surface-raised px-3 text-xs text-secondary hover:border-primary/50 transition-colors"
@@ -97,14 +109,77 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenSearch, onOpenQuickAdd }) 
       </div>
 
       {/* Right Controls */}
-      <div className="flex items-center space-x-2">
-        {/* Quick Add Button */}
+      <div className="flex items-center space-x-1.5 sm:space-x-2">
+        {/* Mobile Search Icon Button */}
+        <button
+          onClick={onOpenSearch}
+          className="flex md:hidden h-9 w-9 items-center justify-center rounded-lg border border-border bg-surface-raised text-secondary hover:text-foreground transition-colors"
+          title="Search"
+        >
+          <Search className="h-4 w-4" />
+        </button>
+
+        {/* Streak Flame Pill */}
+        <div
+          onClick={() => {
+            setCelebrationData({
+              isOpen: true,
+              title: `${streak}-Day Focus Streak! 🔥`,
+              subtitle: "Consistency breeds excellence. You are building unmatched placement momentum!",
+              xpEarned: 25,
+              streakCount: streak,
+              type: "daily_goal",
+            });
+          }}
+          className="flex cursor-pointer items-center space-x-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 sm:px-2.5 py-1 text-xs font-bold text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 transition-all shrink-0"
+          title="Daily Study Streak - Click to view milestone"
+        >
+          <Flame className="h-3.5 w-3.5 sm:h-4 sm:w-4 fill-current text-amber-500 animate-flame" />
+          <span>{streak}d</span>
+        </div>
+
+        {/* Level & XP Badge (Desktop only) */}
+        <div
+          onClick={() => setActiveTab("analytics")}
+          className="hidden md:flex cursor-pointer items-center space-x-2 rounded-xl border border-indigo-500/30 bg-indigo-500/10 px-2.5 py-1 text-xs hover:bg-indigo-500/15 transition-all"
+          title={`Rank: ${levelTitle} • ${xpProgress.current}/${xpProgress.max} XP to Level ${level + 1}`}
+        >
+          <Trophy className="h-3.5 w-3.5 text-primary" />
+          <div className="flex flex-col">
+            <div className="flex items-center space-x-1">
+              <span className="font-extrabold text-foreground text-[11px]">Lv.{level}</span>
+              <span className="text-[10px] text-secondary font-mono">({xp} XP)</span>
+            </div>
+            {/* Tiny progress line */}
+            <div className="h-1 w-14 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
+              <div
+                className="h-full bg-gradient-to-r from-primary to-indigo-500 rounded-full transition-all duration-500"
+                style={{ width: `${xpProgress.percentage}%` }}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Audio Effects Toggle (Tablet/Desktop) */}
+        <button
+          onClick={toggleSound}
+          className={`hidden sm:flex h-9 w-9 items-center justify-center rounded-lg border transition-colors ${
+            isSoundActive
+              ? "border-primary/40 bg-primary/10 text-primary hover:bg-primary/20"
+              : "border-border text-secondary hover:bg-surface-raised"
+          }`}
+          title={isSoundActive ? "Audio Feedback: ON (Chimes & Fanfare)" : "Audio Feedback: OFF"}
+        >
+          {isSoundActive ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+        </button>
+
+        {/* Quick Add Button (Desktop/Tablet) */}
         <button
           onClick={onOpenQuickAdd}
-          className="flex h-9 items-center space-x-1.5 rounded-lg bg-primary px-3 text-xs font-semibold text-white shadow-sm hover:bg-primary-hover transition-colors"
+          className="hidden sm:flex h-9 items-center space-x-1.5 rounded-lg bg-primary px-3 text-xs font-semibold text-white shadow-sm hover:bg-primary-hover transition-colors"
         >
           <Plus className="h-4 w-4" />
-          <span className="hidden sm:inline">Quick Add</span>
+          <span>Quick Add</span>
         </button>
 
         {/* Notification Bell */}
